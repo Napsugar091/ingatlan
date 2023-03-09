@@ -1,0 +1,127 @@
+npm init -y
+npm install sequelize mysql2 --save
+npm install sequelize-cli -g
+npx sequelize-cli init
+**************************
+config.js javítása a saját adatainkkal
+**************************
+
+
+npx sequelize-cli model:generate --name Kategoria --attributes nev:string
+**************************
+kategoria.js kiegészítése (és a migrációs fájl javítása):
+nev:
+  allowNull: false,
+  unique: true
+...
+tableName: 'Kategoriak',
+timestamps: false
+**************************
+
+
+npx sequelize-cli model:generate --name Ingatlan --attributes kategoria:integer,leiras:string,hirdetesDatuma:date,tehermentes:boolean,ar:integer,kepUrl:string
+**************************
+ingatlan.js kiegészítése(és a migrációs fájl javítása):
+
+kategoria, hirdetesDatuma, tehermentes, ar:
+   allowNull: false
+
+hirdetesDatuma:
+  defaultValue: DataTypes.DATE.NOW
+
+...
+tableName: "ingatlanok",
+timestamps: false
+**************************
+
+npx sequelize-cli db:migrate
+
+**************************
+npx sequelize-cli seed:generate --name demo-kategoria
+
+demo-kategoria javítása
+
+npx sequelize-cli db:seed:all
+**************************
+
+Idegen kulcs hozzáadása:
+npx sequelize-cli migration:generate --name migration-skeleton 
+
+Átírni up-ban:
+const transaction = await queryInterface.sequelize.transaction();
+    /**
+     * Add altering commands here.
+     *
+     * Example:
+     * await queryInterface.createTable('users', { id: Sequelize.INTEGER });
+     */
+    try {
+        await queryInterface.addConstraint('ingatlanok', 
+        {
+          fields: ['kategoria'],
+          type: 'foreign key',
+          name: 'kategoria_fkey',
+          references: {
+            table: 'kategoriak',
+            field: 'id'
+          },
+          transaction
+        }
+      );
+      await transaction.commit();
+    } catch (err) {
+        await transaction.rollback();
+        throw err;
+    }    
+
+Átírni down-ban:
+await queryInterface.removeConstraint('ingatlanok', 'kategoria_fkey');
+
+npx sequelize-cli db:migrate
+*********************************   
+
+Folytatás: 
+
+npx sequelize-cli seed:generate --name demo-ingatlan
+
+demo-ingatlan javítása, majd
+npx sequelize-cli db:seed --seed 20230305212241-demo-ingatlan.js
+*********************************
+---------------------------------------------------
+Kiegészítés a kategória modelben:
+Kategoria.associate = function (models) {    
+    Kategoria.hasMany(models.Ingatlan, {
+      foreignKey: 'kategoria'
+    })
+  };
+
+Kiegészítés az ingatlan modelben:
+Ingatlan.associate = function (models) {    
+    Ingatlan.belongsTo(models.Kategoria, {
+      foreignKey: 'kategoria'
+    })
+  };
+----------------------------------------------------
+*********************************
+Adatbázis rendben, következik a végpontok, útvonalak létrehozása.
+
+npm install express cors --save
+
+**
+
+gyökérben index.js létrehozása, megírása
+
+***
+
+controllers mappában ingatlan.controller.js létrehozása,
+	findAll() metódus megírása
+
+routes mappában ingatlan.routes.js létrehozása, 
+	'/api/ingatlanok' útvonal kezelése
+
+
+
+
+
+
+
